@@ -1,6 +1,6 @@
 # &#x20;LexiGuard AI - Multi-Agent Legal Compliance System
 
-A sophisticated, multi-agent LLM application built with Gemini 2.5 Flash for intelligent legal document analysis, risk assessment, and contract negotiation.
+A sophisticated, multi-agent LLM application built for intelligent legal document analysis, risk assessment, and contract negotiation using Google Gemini inference cores
 
 
 
@@ -17,13 +17,13 @@ A sophisticated, multi-agent LLM application built with Gemini 2.5 Flash for int
 * Troubleshooting
 * Project Structure
 * Future Enhancements
-* Credits
+* Credits & License
 
 
 
 ### 🎯 Project Overview
 
-LexiGuard AI is a single-file HTML application that demonstrates advanced LLM capabilities through a multi-agent legal compliance system. Built for a university workshop, it showcases:
+LexiGuard AI is a single-file HTML application that demonstrates advanced LLM capabilities through a multi-agent legal compliance system. It showcases:
 
 
 
@@ -64,7 +64,7 @@ Legal professionals spend hours searching through thousands of pages of contract
 
 ##### 2\. Document Management ("The Vault")
 
-* Drag-and-drop upload (PDF, TXT, MD, HTML, CSV)
+* Drag-and-drop uploads using PDF.js
 * Multi-document selection
 * Document viewer with extracted text
 * Select All functionality for batch analysis
@@ -76,7 +76,8 @@ Legal professionals spend hours searching through thousands of pages of contract
 * Split Viewer: Document text + Analysis Dashboard
 * Extract Deadlines: Generates structured tables of obligations, responsible parties, deadlines, and penalties
 * Risk Heatmap: Visual color-coded risk assessment (🟢 Low, 🟡 Medium, 🔴 High) across Privacy, Security, Liability, and Compliance
-
+* Side-by-Side Clause Comparer: Compares wording variations and discrepancies across any two selected documents
+* Interactive Sandbox Mode: Supports and offline local simulation mode allowing comprehencsive testing immediately upon clicking the "Load Demo File" button - no API key required!
 
 
 ##### 4\. Advanced LLM Capabilities
@@ -143,7 +144,7 @@ Legal professionals spend hours searching through thousands of pages of contract
 
 |Layer|Technology|
 |-|-|
-|Frontend|Vanilla HTML + CSS + JavaScript|
+|Frontend|Vanilla HTML5 + CSS + ES6 JavaScript|
 |Styling|Tailwind CSS (via CDN) + Custom CSS|
 |Icons|Lucide Icons|
 |PDF Processing|PDF.js v3.11.174|
@@ -155,7 +156,7 @@ Legal professionals spend hours searching through thousands of pages of contract
 
 #### Model Details
 
-* Primary Model: gemini-2.5-flash
+* Interference Models: gemini-2.5-flash \& gemini 3 (Optimized)
 * System Instructions: Custom prompts per agent
 
 
@@ -178,9 +179,12 @@ OR
 
 Click drop zone → Select files
 
+OR
+
+Using the Sandbox: Click "Load Demo File" in the top navigation bar
 
 
-Supported formats: PDF, TXT, MD, HTML, CSV
+Supported formats: PDF
 
 
 
@@ -250,7 +254,13 @@ Click "Risk Heatmap" → Generates:
 |Privacy|🟢 Low|No sensitive data|
 |Liability|🔴 High|Broad indemnification|
 
+Compare Selected
 
+Compares two active documents to highlight differences in terms.
+
+Executive Summary
+
+Synthesizes the core contents into high-level bullet points for C-Suite overview
 
 ### 👥 Agent Personas
 
@@ -349,7 +359,17 @@ Input: Legal document
 
 Output: 4x2 table with Privacy, Security, Liability, Compliance risk levels
 
+Compare Selected:
 
+Input: 2 legal documents
+
+Output: A table with effective categories, side by side comparisons for both documents and Auditor Notes \& Contradictions
+
+Executive Summary
+
+Input: Legal document
+
+Output: Summary of the full document in 5 bullet points
 
 ### 🧪 Testing Your System
 
@@ -415,13 +435,7 @@ Downloaded from: Greenville County Procurement Portal
 
 
 
-1. Multi-Document Comparison
-* Side-by-side clause comparison
-* Automated redlining
-
-
-
-2\. Export Capabilities
+1\. Export Capabilities
 
 * PDF report generation
 * CSV export of deadlines
@@ -429,21 +443,21 @@ Downloaded from: Greenville County Procurement Portal
 
 
 
-3\. Agent Collaboration
+2\. Agent Collaboration
 
 * "Ask All Agents" button
 * Multi-agent consensus
 
 
 
-4\. Advanced Analytics
+3\. Advanced Analytics
 
 * Contract score (0-100)
 * Benchmark against industry standards
 
 
 
-5\. Extended File Support
+4\. Extended File Support
 
 * DOCX, XLSX parsing
 * Image OCR (scanned contracts)
