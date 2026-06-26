@@ -8,7 +8,6 @@ A sophisticated, multi-agent LLM application built for intelligent legal documen
 
 * Project Overview
 * Key Features
-* Architecture
 * Technical Stack
 * Usage Guide
 * Agent Personas
@@ -95,49 +94,6 @@ Legal professionals spend hours searching through thousands of pages of contract
 * Glowing API Status Indicator (pulses green when connected)
 * Swiss-style typography with Inter and JetBrains Mono fonts
 * Minimalist tables with alternating row colors
-
-
-
-### 🏗️ Architecture
-
-
-
-┌─────────────────────────────────────────────────────────────┐
-
-│                                LexiGuard AI                                     │
-
-├─────────────────────────────────────────────────────────────┤
-
-│                                                                                 │
-
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐      │
-
-│  │   The Vault      │  │   Workspace       │  │  Multi-Agent Chat      │      │
-
-│  │  (Sidebar)       │  │  (Center)         │  │   (Right Panel)        │      │
-
-│  │                  │  │                   │  │                        │      │
-
-│  │ 📄 Upload        │  │ 📄 Document      │  │ 🧑‍⚖️ Lexi                │     │
-
-│  │ 📂 File List     │  │ 📊 Dashboard     │  │ ⚖️ Judge               │     │
-
-│  │ ☑️ Selection     │  │ 🔍 Analysis      │  │ 🤝 Dealmaker           │     │
-
-│  └──────────────┘  └──────────────┘  └──────────────────┘      │
-
-│                                                                                 │
-
-│  ┌─────────────────────────────────────────────────────────┐ │
-
-│  │              API Key Footer + Status                                       │ │
-
-│  │  🔌 Connected (In-Memory Session)                                         │  │
-
-│  └─────────────────────────────────────────────────────────┘ │
-
-└─────────────────────────────────────────────────────────────┘
-
 
 
 ### 🛠️ Technical Stack
