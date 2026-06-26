@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LexiGuard AI | Compliance Sentinel</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PDF.js for document extraction -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- Marked for Markdown parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'Courier New', 'monospace'],
+                    },
+                    colors: {
+                        swiss: {
+                            50: '#fafafa',
+                            100: '#f5f5f5',
+                            200: '#e5e5e5',
+                            300: '#d4d4d4',
+                            800: '#262626',
+                            900: '#171717',
+                            950: '#0a0a0a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono&display=swap');
+
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .swiss-border {
+            border: 1px solid var(--border-color);
+        }
+
+        .light {
+            --bg-color: #fafafa;
+            --text-color: #171717;
+            --border-color: #e5e5e5;
+            --panel-bg: #ffffff;
+            --hover-bg: #f5f5f5;
+        }
+
+        .dark {
+            --bg-color: #0a0a0a;
+            --text-color: #f5f5f5;
+            --border-color: #262626;
+            --panel-bg: #171717;
+            --hover-bg: #262626;
+        }
+
+        body { background-color: var(--bg-color); color: var(--text-color); }
+        .panel { background-color: var(--panel-bg); border-color: var(--border-color); }
+        .hover-item:hover { background-color: var(--hover-bg); }
+        input, select, textarea { background-color: var(--panel-bg); color: var(--text-color); border-color: var(--border-color); }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+        
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+        .status-dot.disconnected { background-color: #9ca3af; }
+        .status-dot.connected {
+            background-color: #22c55e;
+            animation: pulse-green 2s infinite;
+        }
+
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+        .markdown-content p { margin-bottom: 0.75em; }
+        .markdown-content ul { list-style-type: disc; padding-left: 1.5em; margin-bottom: 0.75em; }
+        .markdown-content strong { font-weight: 600; }
+        .markdown-content h3 { font-size: 1.1em; font-weight: 600; margin-top: 1.0em; margin-bottom: 0.5em; }
+        
+        .swiss-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9em;
+            margin-top: 1rem;
+        }
+        .swiss-table th, .swiss-table td {
+            border: 1px solid var(--border-color);
+            padding: 0.75rem;
+            text-align: left;
+        }
+        .light .swiss-table tbody tr:nth-child(odd) { background-color: #f9f9f9; }
+        .dark .swiss-table tbody tr:nth-child(odd) { background-color: #1e1e1e; }
+        .swiss-table th { font-weight: 600; background-color: var(--hover-bg); }
+
+        .highlight-span {
+            background-color: rgba(250, 204, 21, 0.35);
+            border-radius: 2px;
+            padding: 0 2px;
+            border-bottom: 2px solid rgba(250, 204, 21, 0.85);
+            transition: all 0.3s ease;
+        }
+
+        .loader {
+            border: 2px solid var(--border-color);
+            border-top: 2px solid var(--text-color);
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden text-sm">
+
+    <header class="panel border-b swiss-border h-14 flex items-center justify-between px-6 shrink-0 z-10">
+        <div class="flex items-center gap-3">
+            <i data-lucide="shield-check" class="w-5 h-5 text-red-500"></i>
+            <h1 class="font-semibold tracking-wide uppercase text-xs">LexiGuard AI <span class="font-normal text-[10px] lowercase text-neutral-500">/ compliance sentinel</span></h1>
+        </div>
+        <div class="flex items-center gap-4">
+            <button id="btnLoadDemo" class="px-2.5 py-1 border swiss-border rounded text-[11px] font-medium hover-item transition-all" title="Load sample document to evaluate immediately">
+                Load Demo File
+            </button>
+            <button id="themeToggle" class="p-2 rounded hover-item transition-colors" title="Toggle Dark Mode">
+                <i data-lucide="moon" class="w-4 h-4 dark:hidden"></i>
+                <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 flex overflow-hidden">
+        
+        <!-- 1. The Vault (Sidebar Left) -->
+        <aside class="w-72 panel border-r swiss-border flex flex-col shrink-0">
+            <div class="p-4 border-b swiss-border font-medium flex justify-between items-center">
+                <span class="flex items-center gap-2 font-semibold uppercase text-xs tracking-wider"><i data-lucide="archive" class="w-4 h-4 text-neutral-500"></i> The Vault</span>
+                <span id="vaultDocCount" class="text-xs px-2 py-0.5 bg-neutral-100 dark:bg-neutral-800 rounded font-mono">0</span>
+            </div>
+            
+            <!-- Upload Area -->
+            <div class="p-4 border-b swiss-border">
+                <div id="dropZone" class="border border-dashed border-[var(--border-color)] rounded p-5 text-center cursor-pointer hover:bg-[var(--hover-bg)] transition-all relative">
+                    <input type="file" id="fileInput" accept=".pdf" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer" multiple>
+                    <i data-lucide="upload-cloud" class="w-5 h-5 mx-auto mb-2 text-neutral-400"></i>
+                    <p class="text-xs text-neutral-500">Drag & drop PDFs or click</p>
+                </div>
+            </div>
+
+            <!-- Document List -->
+            <div class="flex-1 overflow-y-auto p-4 flex flex-col">
+                <div class="text-[10px] font-semibold text-neutral-500 mb-3 uppercase tracking-widest">Active System Inventory</div>
+                <ul id="documentList" class="space-y-2 flex-1">
+                    <!-- Docs populated here -->
+                </ul>
+                <div id="noDocsMsg" class="text-xs text-neutral-400 italic text-center my-auto p-4">
+                    Vault is empty.<br>Upload compliance PDFs or click "Load Demo File" at the top to try.
+                </div>
+            </div>
+        </aside>
+
+        <!-- 2. The Workspace (Center Panel) -->
+        <section class="flex-1 flex flex-col min-w-0 bg-[var(--bg-color)]">
+            <!-- Workspace Toolbar -->
+            <div class="h-12 border-b swiss-border flex items-center px-4 gap-2 bg-[var(--panel-bg)] shrink-0 overflow-x-auto justify-between">
+                <div class="flex items-center gap-1">
+                    <button id="btnCompare" class="px-2.5 py-1.5 border swiss-border rounded text-xs hover-item flex items-center gap-1.5 transition-colors" title="Compare wording of selected documents">
+                        <i data-lucide="git-compare" class="w-3.5 h-3.5 text-neutral-500"></i> Compare Selected
+                    </button>
+                    <button id="btnExtract" class="px-2.5 py-1.5 border swiss-border rounded text-xs hover-item flex items-center gap-1.5 transition-colors" title="Extract obligations & deadlines">
+                        <i data-lucide="calendar" class="w-3.5 h-3.5 text-neutral-500"></i> 📅 Extract Deadlines
+                    </button>
+                    <button id="btnHeatmap" class="px-2.5 py-1.5 border swiss-border rounded text-xs hover-item flex items-center gap-1.5 transition-colors" title="Assess structural risk dimensions">
+                        <i data-lucide="activity" class="w-3.5 h-3.5 text-neutral-500"></i> Risk Heatmap
+                    </button>
+                </div>
+                <button id="btnSummary" class="px-2.5 py-1.5 border swiss-border rounded text-xs hover-item flex items-center gap-1.5 transition-colors" title="Summarize into short CEO bullets">
+                    <i data-lucide="file-text" class="w-3.5 h-3.5 text-neutral-500"></i> Executive Summary
+                </button>
+            </div>
+
+            <!-- Workspace Content Area (Split View) -->
+            <div class="flex-1 flex overflow-hidden relative">
+                
+                <!-- Left Split: Document Content Viewer -->
+                <div class="w-1/2 border-r swiss-border flex flex-col bg-gray-50 dark:bg-neutral-900 relative">
+                    <div class="p-3 border-b swiss-border text-xs font-semibold text-neutral-500 uppercase tracking-wider bg-[var(--panel-bg)] flex items-center gap-2">
+                        <i data-lucide="eye" class="w-3.5 h-3.5"></i> Source Document Viewer
+                    </div>
+                    
+                    <div class="absolute inset-0 top-10 flex items-center justify-center text-neutral-400" id="pdfPlaceholder">
+                        <div class="text-center p-6">
+                            <i data-lucide="file-text" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+                            <p class="text-xs">No active document selected.</p>
+                            <p class="text-[11px] text-neutral-400 mt-1">Select an item from "The Vault" to load.</p>
+                        </div>
+                    </div>
+                    
+                    <div id="textViewer" class="hidden flex-1 overflow-y-auto p-6 font-mono text-xs leading-relaxed bg-white dark:bg-neutral-950">
+                        <div id="viewerContent" class="whitespace-pre-wrap select-text"></div>
+                    </div>
+                </div>
+
+                <!-- Right Split: Extraction & Action Outcomes -->
+                <div class="w-1/2 flex flex-col bg-[var(--panel-bg)]">
+                    <div class="p-3 border-b swiss-border text-xs font-semibold text-neutral-500 uppercase tracking-wider flex justify-between items-center bg-[var(--panel-bg)] shrink-0">
+                        <span id="workspaceTitle">Analysis Output Terminal</span>
+                        <div id="workspaceLoader" class="loader hidden"></div>
+                    </div>
+                    <div id="workspaceContent" class="flex-1 overflow-y-auto p-6 text-sm leading-relaxed">
+                        <div class="text-center my-auto pt-16 text-neutral-400">
+                            <i data-lucide="terminal" class="w-8 h-8 mx-auto mb-2 opacity-40"></i>
+                            <p class="text-xs">Analytical terminal idle.</p>
+                            <p class="text-[11px] text-neutral-400 mt-1">Click a toolbar analysis button or interact with the agents to populate details here.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- 3. The Chatbots (Sidebar Right) -->
+        <aside class="w-80 panel border-l swiss-border flex flex-col shrink-0">
+            <!-- Agent Selection Bar -->
+            <div class="p-4 border-b swiss-border space-y-4">
+                <div>
+                    <label class="text-[10px] font-semibold text-neutral-500 mb-1.5 block uppercase tracking-widest">Active Agent Persona</label>
+                    <select id="agentSelect" class="w-full p-2 border swiss-border rounded text-xs outline-none focus:ring-1 focus:ring-neutral-400 font-medium">
+                        <option value="lexi">🛡️ Lexi (Compliance Sentinel)</option>
+                        <option value="judge">⚖️ The Judge (Litigation Auditor)</option>
+                        <option value="dealmaker">🤝 The Dealmaker (Advisor)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="text-[10px] font-semibold text-neutral-500 mb-1.5 block uppercase tracking-widest">Inference Core</label>
+                    <select id="modelSelect" class="w-full p-2 border swiss-border rounded text-xs outline-none focus:ring-1 focus:ring-neutral-400 font-medium">
+                        <option value="gemini-3-flash-preview">Gemini 3 Flash (Optimized)</option>
+                        <option value="gemini-2.5-flash-preview-09-2025">Gemini 2.5 Flash</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Chat History -->
+            <div id="chatHistory" class="flex-1 overflow-y-auto p-4 space-y-4 bg-neutral-50 dark:bg-neutral-900/40">
+                <!-- Welcome Agent Intro Message -->
+                <div class="flex gap-2" id="welcomeMessage">
+                    <div class="w-6 h-6 rounded bg-neutral-800 text-white dark:bg-white dark:text-neutral-900 flex items-center justify-center shrink-0 font-bold text-[10px]">LS</div>
+                    <div class="bg-[var(--panel-bg)] border swiss-border p-3 rounded shadow-sm text-xs leading-relaxed max-w-[85%]">
+                        <p class="font-semibold mb-1">Lexi, the Compliance Sentinel</p>
+                        I am initialized as an expert in regulatory risk, clause extraction, and contradiction detection.
+                        <div class="mt-2 text-neutral-500 border-t pt-1.5 border-[var(--border-color)] text-[10px]">
+                            👉 Select your target document, pick an agent above, and issue prompts.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Input Area -->
+            <div class="p-4 border-t swiss-border bg-[var(--panel-bg)] shrink-0">
+                <div class="relative">
+                    <textarea id="chatInput" rows="3" placeholder="Analyze the contract for anomalies..." class="w-full p-2.5 pr-10 border swiss-border rounded text-xs resize-none outline-none focus:ring-1 focus:ring-neutral-400" style="min-height: 60px;"></textarea>
+                    <button id="btnSend" class="absolute right-2 bottom-3 p-1.5 bg-neutral-900 text-white dark:bg-white dark:text-neutral-900 rounded hover:opacity-80 transition-all">
+                        <i data-lucide="arrow-up" class="w-3.5 h-3.5"></i>
+                    </button>
+                </div>
+                <div class="text-[10px] text-neutral-400 mt-2 flex justify-between items-center px-1">
+                    <span>Targeting: <strong id="selectedDocsMeta">0 Selected</strong></span>
+                    <button id="btnClearChat" class="text-neutral-500 hover:text-red-500 transition-colors">Clear history</button>
+                </div>
+            </div>
+        </aside>
+
+    </main>
+
+    <!-- 4. The Footer Bar & API Control -->
+    <footer class="h-10 border-t swiss-border flex items-center justify-between px-6 shrink-0 bg-[var(--panel-bg)]">
+        <div class="flex items-center gap-2 text-[11px] font-mono text-neutral-500">
+            <span class="inline-block w-2 h-2 rounded bg-neutral-300 dark:bg-neutral-700 animate-pulse"></span>
+            <span>SYSTEM CONTEXT OK</span>
+        </div>
+        <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+                <span class="status-dot disconnected" id="apiStatusDot"></span>
+                <span class="text-[11px] text-neutral-500 font-mono" id="apiStatusText">offline mock mode</span>
+            </div>
+            <div class="flex items-center gap-2">
+                <label for="apiKeyInput" class="text-[10px] font-mono text-neutral-400">Gemini Key:</label>
+                <input type="password" id="apiKeyInput" placeholder="Enter API Key to unlock real LLM..." class="font-mono text-xs px-2 py-1 border swiss-border rounded w-56 outline-none focus:ring-1 focus:ring-neutral-400 bg-neutral-50/50 dark:bg-neutral-900/50">
+            </div>
+        </div>
+    </footer>
+
+    <div id="toastContainer" class="fixed bottom-12 left-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        // System state tracking
+        const state = {
+            documents: [],
+            apiKey: localStorage.getItem('lexiguard_api_key') || '',
+            activeAgent: 'lexi',
+            activeDocId: null,
+            chatLogs: {
+                lexi: [],
+                judge: [],
+                dealmaker: []
+            }
+        };
+
+        // Standard mock document with dense contradictory details
+        const DEMO_DOCUMENT = {
+            id: 'demo_doc_001',
+            name: 'Service_SLA_Vendor_Agreement_v3.2.pdf',
+            pages: 4,
+            selected: true,
+            tags: ['GDPR Compliance', 'Vendor SLA', 'SaaS Agreement'],
+            text: `AGREEMENT FOR SAAS PROVISIONING & DATA PROTECTION (v3.2)
+
+This Software as a Service SLA ("Agreement") is entered into on December 1, 2025, between Client Corp. ("Client") and Vendor Inc. ("Vendor").
+
+SECTION 1. SERVICE AVAILABILITY & MILESTONES
+1.1 Deliver Software. Vendor agrees to complete custom feature implementations and configure the production environment for the SaaS solution. Vendor shall deliver Software configurations ready for client acceptance testing on or before Dec 1, 2025.
+1.2 In the event that Vendor fails to meet the Dec 1, 2025 milestone, Vendor Inc. shall be assessed a standard delay penalty of $500/day for each day until system acceptance is successfully signed.
+
+SECTION 2. CONSIDERATION & PAYMENTS
+2.1 Payment Milestone. Client Corp. is obligated to pay the final implementation milestone payment to Vendor Inc. on or before Nov 15, 2025. 
+2.2 If payments are delayed beyond the stated Nov 15, 2025 timeline, an Interest penalty of 5% per month will accumulate on all outstanding balances due to Vendor.
+
+SECTION 3. DATA SECURITY & PRIVACY POLICY
+3.1 General Security. Vendor Inc. will implement security protocols aligned with ISO 27001 parameters.
+3.2 Privacy & GDPR. The vendor agrees that all personal user data processed is housed strictly within EEA geographic regions, conforming to the General Data Protection Regulation (GDPR) standards. Personal data storage is strictly prohibited outside these jurisdictions.
+3.3 Critical Clause: Page 4 states clearly that "Vendor shall have zero liability for accidental data disclosures occurring as a result of sovereign network provider breaches."
+
+SECTION 12. GENERAL LIABILITY AND DISCLOSURES
+12.1 Under Section 12, Page 12 of the auxiliary contract reference it is stated: "Vendor Inc. agrees to assume unconditional unlimited financial liability for all security breaches, including third-party routing leaks, sovereign carrier interruptions, or external system intrusions."
+
+SECTION 15. FORCE MAJEURE
+15.1 Force Majeure triggers shall release either party from performance, but the terms fail to explicitly list the specific acts of God, network carrier collapse, or labor disputes that constitute valid triggers. Either party may unilaterally invoke Force Majeure upon any continuous network outage lasting longer than 48 hours.`
+        };
+
+        // Prompt vectors for active agents
+        const agentMetadata = {
+            lexi: {
+                title: "Lexi",
+                icon: "shield-check",
+                subtitle: "Compliance Sentinel",
+                desc: "An expert in regulatory risk, clause extraction, and contradiction detection.",
+                prompt: `You are Lexi, the Compliance Sentinel. You have access to selected documents in your context. 
+Analyze the query. First, decide if the query is 'Document-Specific' or 'General Knowledge'. If General, answer freely but keep it accurate.
+If Document-Specific, use RAG retrieval over the selected files.
+CRUCIAL: If you discover contradictory clauses in the selected document(s) (e.g. conflicting terms between Section 3 and Section 12 about liability, or conflicting dates), you must alert the user immediately with:
+"⚠️ Conflict Detected: Page X says [Specific Clause X], but Page Y says [Specific Clause Y]."
+Cite every assertion precisely. format citations as: "Source: [Filename], Page [PageNo], Paragraph [ParaNo]".`
+            },
+            judge: {
+                title: "The Judge",
+                icon: "gavel",
+                subtitle: "Litigation Auditor",
+                desc: "Acts as a Devil's Advocate to identify contract vulnerabilities and legal liabilities.",
+                prompt: `You are a Litigation Judge acting as a compliance auditor and Devil's Advocate. 
+You actively seek out ambiguities, unfair terms, poorly defined metrics, and critical legal liabilities in the uploaded files.
+Look for definitions of "Force Majeure", liability caps, data breach clauses, and indemnification.
+Highlight vulnerability. Format: "⚠️ Warning: This contract does not define [Term] clearly. A judge would likely rule against the drafter in a dispute because of [Reason]."
+Be critical, objective, and analytical.`
+            },
+            dealmaker: {
+                title: "The Dealmaker",
+                icon: "handshake",
+                subtitle: "Contract Advisor",
+                desc: "Rewrites problematic contract provisions into balanced terms and fair counter-offers.",
+                prompt: `You are a Contract Advisor and Master Negotiator called "The Dealmaker".
+Identify unbalanced clauses that favor one party over another. 
+Provide clear, actionable, alternative formulations.
+For each problematic clause you find:
+1. Show the original clause.
+2. Provide a "Suggested Fair Rewrite" that protects the client while remaining reasonable for the vendor.
+3. Give "Counter-offer Strategy" in plain, clear, accessible English.`
+            }
+        };
+
+        // --- STREAMING_CHUNK: Initializing application elements and core events... ---
+        function initializeApp() {
+            lucide.createIcons();
+            
+            if (state.apiKey) {
+                document.getElementById('apiKeyInput').value = state.apiKey;
+                updateApiIndicator(true);
+            }
+            
+            loadLocalDocuments();
+            setupEventListeners();
+            selectAgent(state.activeAgent);
+            updateSelectedMetaDataText();
+        }
+
+        function triggerToast(message, type = "info") {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            const bgClass = type === "error" ? "bg-red-500 text-white border-red-600" : "bg-neutral-900 text-white dark:bg-neutral-100 dark:text-neutral-950";
+            
+            toast.className = `p-3 rounded shadow-lg text-xs font-medium border swiss-border pointer-events-auto flex items-center gap-2 transform transition-all translate-y-2 opacity-0 duration-300 ${bgClass}`;
+            toast.innerHTML = `<span>${message}</span>`;
+            
+            container.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 50);
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        function setupEventListeners() {
+            // Theme toggle
+            document.getElementById('themeToggle').addEventListener('click', () => {
+                const docClass = document.documentElement.classList;
+                if (docClass.contains('dark')) {
+                    docClass.remove('dark');
+                    docClass.add('light');
+                } else {
+                    docClass.remove('light');
+                    docClass.add('dark');
+                }
+            });
+
+            // API Input Change
+            document.getElementById('apiKeyInput').addEventListener('input', (e) => {
+                const key = e.target.value.trim();
+                state.apiKey = key;
+                localStorage.setItem('lexiguard_api_key', key);
+                updateApiIndicator(key.length > 0);
+            });
+
+            // Demo Document Injection
+            document.getElementById('btnLoadDemo').addEventListener('click', () => {
+                if (!state.documents.find(d => d.id === DEMO_DOCUMENT.id)) {
+                    state.documents.push({...DEMO_DOCUMENT});
+                    saveLocalDocuments();
+                    renderDocuments();
+                    viewDocumentContent(DEMO_DOCUMENT.id);
+                    triggerToast("Demo SLA Document successfully injected into Vault.");
+                } else {
+                    viewDocumentContent(DEMO_DOCUMENT.id);
+                }
+            });
+
+            // File Drag & Drop
+            const dropZone = document.getElementById('dropZone');
+            const fileInput = document.getElementById('fileInput');
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('bg-neutral-100', 'dark:bg-neutral-800');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('bg-neutral-100', 'dark:bg-neutral-800');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('bg-neutral-100', 'dark:bg-neutral-800');
+                handleUploadedFiles(e.dataTransfer.files);
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                handleUploadedFiles(e.target.files);
+            });
+
+            // Chat input triggers
+            document.getElementById('agentSelect').addEventListener('change', (e) => {
+                selectAgent(e.target.value);
+            });
+
+            document.getElementById('btnSend').addEventListener('click', () => {
+                handleUserQuery();
+            });
+
+            document.getElementById('chatInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleUserQuery();
+                }
+            });
+
+            document.getElementById('btnClearChat').addEventListener('click', () => {
+                state.chatLogs[state.activeAgent] = [];
+                renderChatHistory();
+                triggerToast("Chat history cleared.");
+            });
+
+            // Workspace Action Panels
+            document.getElementById('btnExtract').addEventListener('click', extractDeadlinesAction);
+            document.getElementById('btnHeatmap').addEventListener('click', generateHeatmapAction);
+            document.getElementById('btnSummary').addEventListener('click', summarizeForExecutiveAction);
+            document.getElementById('btnCompare').addEventListener('click', compareSelectedAction);
+        }
+
+        // --- STREAMING_CHUNK: Processing file management operations... ---
+        function updateApiIndicator(connected) {
+            const dot = document.getElementById('apiStatusDot');
+            const text = document.getElementById('apiStatusText');
+            if (connected) {
+                dot.className = "status-dot connected";
+                text.textContent = "Gemini Connected";
+            } else {
+                dot.className = "status-dot disconnected";
+                text.textContent = "offline mock mode";
+            }
+        }
+
+        async function handleUploadedFiles(files) {
+            for (let file of files) {
+                if (file.type !== "application/pdf") {
+                    triggerToast(`"${file.name}" is not a valid PDF file.`, "error");
+                    continue;
+                }
+                
+                triggerToast(`Processing & extracting "${file.name}"...`);
+                
+                try {
+                    const extractedText = await extractTextFromPDF(file);
+                    const pages = await getPDFPageCount(file);
+                    
+                    const newDoc = {
+                        id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
+                        name: file.name,
+                        pages: pages,
+                        selected: true,
+                        tags: generateAutoTags(file.name, extractedText),
+                        text: extractedText
+                    };
+                    
+                    state.documents.push(newDoc);
+                    saveLocalDocuments();
+                    renderDocuments();
+                    viewDocumentContent(newDoc.id);
+                    triggerToast(`Indexed "${file.name}" successfully.`);
+                } catch (error) {
+                    triggerToast(`Failed to parse PDF: ${error.message}`, "error");
+                }
+            }
+        }
+
+        // PDF text reader via PDF.js worker
+        function extractTextFromPDF(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async function() {
+                    try {
+                        const typedarray = new Uint8Array(this.result);
+                        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                        let extractedText = "";
+                        
+                        for (let i = 1; i <= pdf.numPages; i++) {
+                            const page = await pdf.getPage(i);
+                            const textContent = await page.getTextContent();
+                            const pageText = textContent.items.map(item => item.str).join(" ");
+                            extractedText += `--- Page ${i} ---\n${pageText}\n\n`;
+                        }
+                        resolve(extractedText);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = (err) => reject(err);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function getPDFPageCount(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = async function() {
+                    try {
+                        const typedarray = new Uint8Array(this.result);
+                        const pdf = await pdfjsLib.getDocument(typedarray).promise;
+                        resolve(pdf.numPages);
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = (err) => reject(err);
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function generateAutoTags(filename, text) {
+            const tags = [];
+            const lowText = text.toLowerCase();
+            if (lowText.includes('gdpr') || lowText.includes('privacy') || lowText.includes('personal')) {
+                tags.push('Privacy Policy');
+            }
+            if (lowText.includes('liability') || lowText.includes('indemnity')) {
+                tags.push('Liability Shield');
+            }
+            if (lowText.includes('sla') || lowText.includes('uptime') || lowText.includes('milestone')) {
+                tags.push('Service Level Agreement');
+            }
+            if (tags.length === 0) {
+                tags.push('Legal Contract');
+            }
+            return tags;
+        }
+
+        function saveLocalDocuments() {
+            try {
+                const cleanDocs = state.documents.map(d => ({
+                    id: d.id,
+                    name: d.name,
+                    pages: d.pages,
+                    selected: d.selected,
+                    tags: d.tags,
+                    text: d.text
+                }));
+                localStorage.setItem('lexiguard_saved_docs', JSON.stringify(cleanDocs));
+            } catch (err) {
+                console.warn("Storage allocation limit hit, metadata saved partially.", err);
+            }
+        }
+
+        function loadLocalDocuments() {
+            const raw = localStorage.getItem('lexiguard_saved_docs');
+            if (raw) {
+                try {
+                    state.documents = JSON.parse(raw);
+                    renderDocuments();
+                } catch (err) {
+                    console.error("Could not parse saved docs", err);
+                }
+            }
+        }
+
+        function renderDocuments() {
+            const list = document.getElementById('documentList');
+            const noDocs = document.getElementById('noDocsMsg');
+            const countBadge = document.getElementById('vaultDocCount');
+            
+            list.innerHTML = "";
+            countBadge.textContent = state.documents.length;
+            
+            if (state.documents.length === 0) {
+                noDocs.classList.remove('hidden');
+                return;
+            }
+            noDocs.classList.add('hidden');
+            
+            state.documents.forEach(doc => {
+                const li = document.createElement('li');
+                li.className = `p-3 border swiss-border rounded flex flex-col gap-2 transition-all hover:border-neutral-400 cursor-pointer ${
+                    state.activeDocId === doc.id ? 'bg-neutral-50 dark:bg-neutral-900 border-neutral-400' : 'bg-[var(--panel-bg)]'
+                }`;
+                
+                li.onclick = (e) => {
+                    if (e.target.type !== "checkbox" && !e.target.closest('.delete-btn')) {
+                        viewDocumentContent(doc.id);
+                    }
+                };
+
+                const tagsHtml = doc.tags.map(tag => `<span class="px-1.5 py-0.5 text-[9px] font-mono border border-neutral-200 dark:border-neutral-800 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400">${tag}</span>`).join('');
+
+                li.innerHTML = `
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <input type="checkbox" id="check_${doc.id}" ${doc.selected ? 'checked' : ''} class="cursor-pointer rounded border-neutral-300">
+                            <span class="text-xs font-semibold truncate select-none text-neutral-800 dark:text-neutral-200" title="${doc.name}">${doc.name}</span>
+                        </div>
+                        <button class="delete-btn text-neutral-400 hover:text-red-500 transition-colors p-0.5" title="Remove Document">
+                            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                    <div class="flex justify-between items-center text-[10px] text-neutral-500 font-mono">
+                        <span>📄 ${doc.pages} page(s)</span>
+                        <span class="text-[9px] uppercase tracking-wider">OK</span>
+                    </div>
+                    <div class="flex flex-wrap gap-1 mt-1">
+                        ${tagsHtml}
+                    </div>
+                `;
+
+                const cb = li.querySelector('input[type="checkbox"]');
+                cb.addEventListener('change', (e) => {
+                    doc.selected = e.target.checked;
+                    saveLocalDocuments();
+                    updateSelectedMetaDataText();
+                });
+
+                const delBtn = li.querySelector('.delete-btn');
+                delBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteDocument(doc.id);
+                };
+
+                list.appendChild(li);
+            });
+
+            lucide.createIcons();
+            updateSelectedMetaDataText();
+        }
+
+        function deleteDocument(id) {
+            state.documents = state.documents.filter(d => d.id !== id);
+            if (state.activeDocId === id) {
+                state.activeDocId = null;
+                document.getElementById('textViewer').classList.add('hidden');
+                document.getElementById('pdfPlaceholder').classList.remove('hidden');
+            }
+            saveLocalDocuments();
+            renderDocuments();
+            triggerToast("Document removed from system inventory.");
+        }
+
+        function updateSelectedMetaDataText() {
+            const count = state.documents.filter(d => d.selected).length;
+            document.getElementById('selectedDocsMeta').innerHTML = `<span class="font-bold underline text-neutral-800 dark:text-neutral-200">${count} System Docs</span>`;
+        }
+
+        function viewDocumentContent(id) {
+            state.activeDocId = id;
+            const doc = state.documents.find(d => d.id === id);
+            if (!doc) return;
+            
+            renderDocuments();
+
+            const textViewer = document.getElementById('textViewer');
+            const placeholder = document.getElementById('pdfPlaceholder');
+            const contentDiv = document.getElementById('viewerContent');
+
+            placeholder.classList.add('hidden');
+            textViewer.classList.remove('hidden');
+            contentDiv.textContent = doc.text;
+        }
+
+        // --- STREAMING_CHUNK: Processing actual LLM connection loops... ---
+        async function runLlmQuery(systemPrompt, userPrompt, action = null) {
+            if (!state.apiKey) {
+                return runSandboxSimulation(state.activeAgent, userPrompt, action);
+            }
+
+            const model = document.getElementById('modelSelect').value;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${state.apiKey}`;
+
+            const requestPayload = {
+                contents: [
+                    {
+                        role: "user",
+                        parts: [{ text: `${systemPrompt}\n\nClient Context:\n${userPrompt}` }]
+                    }
+                ],
+                generationConfig: {
+                    temperature: 0.1,
+                    topP: 0.95,
+                    maxOutputTokens: 2048
+                }
+            };
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(requestPayload)
+                });
+
+                if (!response.ok) {
+                    const errorDetails = await response.json();
+                    throw new Error(errorDetails.error?.message || `HTTP Status ${response.status}`);
+                }
+
+                const data = await response.json();
+                return data.candidates[0].content.parts[0].text;
+            } catch (err) {
+                console.error("Gemini invocation failed:", err);
+                triggerToast(`API Fail: ${err.message}. Falling back to Simulation mode.`, "error");
+                return runSandboxSimulation(state.activeAgent, userPrompt, action);
+            }
+        }
+
+        // --- STREAMING_CHUNK: Setting up agent selections and chatbot layout... ---
+        function selectAgent(agentKey) {
+            state.activeAgent = agentKey;
+            renderChatHistory();
+        }
+
+        function renderChatHistory() {
+            const chatHistory = document.getElementById('chatHistory');
+            chatHistory.innerHTML = "";
+            
+            const currentLogs = state.chatLogs[state.activeAgent];
+            
+            if (currentLogs.length === 0) {
+                const meta = agentMetadata[state.activeAgent];
+                const welcomeHtml = `
+                    <div class="flex gap-2">
+                        <div class="w-6 h-6 rounded bg-neutral-800 text-white dark:bg-white dark:text-neutral-900 flex items-center justify-center shrink-0 font-bold text-[10px] uppercase">
+                            ${meta.title[0]}${meta.title[1] || ''}
+                        </div>
+                        <div class="bg-[var(--panel-bg)] border swiss-border p-3 rounded shadow-sm text-xs leading-relaxed max-w-[85%]">
+                            <p class="font-semibold mb-1">${meta.title} (${meta.subtitle})</p>
+                            ${meta.desc}
+                            <div class="mt-2 text-neutral-500 border-t pt-1.5 border-[var(--border-color)] text-[10px]">
+                                👉 Ask a query about selected documents.
+                            </div>
+                        </div>
+                    </div>
+                `;
+                chatHistory.innerHTML = welcomeHtml;
+                return;
+            }
+            
+            currentLogs.forEach(log => {
+                const isUser = log.role === 'user';
+                const senderName = isUser ? 'User' : agentMetadata[state.activeAgent].title;
+                const senderInitials = isUser ? 'U' : senderName.slice(0, 2).toUpperCase();
+                const alignmentClass = isUser ? 'flex-row-reverse' : 'flex-row';
+                const panelClass = isUser ? 'bg-neutral-100 dark:bg-neutral-800 text-neutral-800 dark:text-neutral-100 border-transparent' : 'bg-[var(--panel-bg)] border swiss-border';
+                
+                const bubbleHtml = `
+                    <div class="flex gap-2 ${alignmentClass}">
+                        <div class="w-6 h-6 rounded ${isUser ? 'bg-neutral-400 dark:bg-neutral-700' : 'bg-neutral-900 text-white dark:bg-white dark:text-neutral-900'} flex items-center justify-center shrink-0 font-bold text-[10px]">
+                            ${senderInitials}
+                        </div>
+                        <div class="${panelClass} p-3 rounded shadow-sm text-xs leading-relaxed max-w-[85%] break-words">
+                            <div class="font-semibold mb-1 text-[10px] text-neutral-400 select-none">${senderName}</div>
+                            <div class="markdown-content">${marked.parse(log.text)}</div>
+                        </div>
+                    </div>
+                `;
+                chatHistory.insertAdjacentHTML('beforeend', bubbleHtml);
+            });
+
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+        }
+
+        async function handleUserQuery() {
+            const input = document.getElementById('chatInput');
+            const text = input.value.trim();
+            if (!text) return;
+            
+            state.chatLogs[state.activeAgent].push({ role: 'user', text: text });
+            input.value = "";
+            renderChatHistory();
+
+            const chatHistory = document.getElementById('chatHistory');
+            const loadingId = 'typing_' + Date.now();
+            const loadingHtml = `
+                <div id="${loadingId}" class="flex gap-2">
+                    <div class="w-6 h-6 rounded bg-neutral-200 dark:bg-neutral-700 animate-pulse flex items-center justify-center shrink-0 font-bold text-[10px]">..</div>
+                    <div class="bg-[var(--panel-bg)] border border-dashed border-[var(--border-color)] p-3 rounded text-xs text-neutral-400 italic">
+                        Agent is reasoning with documents...
+                    </div>
+                </div>
+            `;
+            chatHistory.insertAdjacentHTML('beforeend', loadingHtml);
+            chatHistory.scrollTop = chatHistory.scrollHeight;
+
+            const selectedDocs = state.documents.filter(d => d.selected);
+            let combinedContext = "No documents currently checked.";
+            if (selectedDocs.length > 0) {
+                combinedContext = selectedDocs.map(d => `Document Name: ${d.name}\nContent:\n${d.text}`).join("\n\n---\n\n");
+            }
+
+            const activeSystemPrompt = agentMetadata[state.activeAgent].prompt;
+            const formattedUserPrompt = `[System Document Context]\n${combinedContext}\n\n[User Directive]\n${text}`;
+
+            const response = await runLlmQuery(activeSystemPrompt, formattedUserPrompt);
+            
+            document.getElementById(loadingId)?.remove();
+
+            state.chatLogs[state.activeAgent].push({ role: 'agent', text: response });
+            renderChatHistory();
+
+            checkForKeywordHighlights(response);
+        }
+
+        // --- STREAMING_CHUNK: Implementing workspace actions & visual builders... ---
+        async function extractDeadlinesAction() {
+            const selectedDocs = state.documents.filter(d => d.selected);
+            if (selectedDocs.length === 0) {
+                triggerToast("Please select at least one document in 'The Vault'.", "error");
+                return;
+            }
+
+            setWorkspaceLoader(true, "Extracting compliance obligations & deadlines...");
+
+            const systemPrompt = `Extract compliance deadlines, responsibilities, penalties, and obligations. Present output strictly as a markdown table using the exact columns below. Do not wrap with conversation:
+
+| Obligation | Responsible Party | Deadline | Penalty for Late |
+|------------|-------------------|----------|------------------|`;
+
+            const combinedText = selectedDocs.map(d => d.text).join("\n\n");
+            const responseText = await runLlmQuery(systemPrompt, combinedText, 'extract-deadlines');
+
+            setWorkspaceLoader(false, "Extracted Deadlines & Milestones");
+            
+            // Build visual table panel directly
+            const displayPanel = `
+                <div class="space-y-4">
+                    <div class="flex items-center gap-2 justify-between">
+                        <span class="text-xs font-mono text-neutral-500 uppercase tracking-widest">📋 Contract Timeline & Penalties</span>
+                        <span class="text-[10px] px-2 py-0.5 border border-neutral-300 rounded uppercase font-mono bg-neutral-100 dark:bg-neutral-800">Operational</span>
+                    </div>
+                    <div class="markdown-content swiss-table-container">
+                        ${marked.parse(responseText)}
+                    </div>
+                </div>
+            `;
+            document.getElementById('workspaceContent').innerHTML = displayPanel;
+            applySwissTableStyling();
+        }
+
+        async function generateHeatmapAction() {
+            const selectedDocs = state.documents.filter(d => d.selected);
+            if (selectedDocs.length === 0) {
+                triggerToast("Please select at least one document in 'The Vault'.", "error");
+                return;
+            }
+
+            setWorkspaceLoader(true, "Assessing structural risk parameters...");
+
+            const systemPrompt = `Evaluate structural risk parameters across 4 areas (Privacy, Security, Liability, Compliance).
+Format your output strictly as a markdown table. Do not include introductory notes or chat conversation:
+
+| Area | Risk Level | Specific Violation/Vulnerability |
+|------|------------|-----------------------------------|
+| Privacy | [Risk Level] | [Reasoning] |
+| Security | [Risk Level] | [Reasoning] |
+| Liability | [Risk Level] | [Reasoning] |
+| Compliance | [Risk Level] | [Reasoning] |`;
+
+            const combinedText = selectedDocs.map(d => d.text).join("\n\n");
+            const responseText = await runLlmQuery(systemPrompt, combinedText, 'risk-heatmap');
+
+            setWorkspaceLoader(false, "Vulnerability & Risk Heatmap");
+            
+            // Generate standard Markdown parsed section plus an additional gorgeous visual dashboard widget
+            const dashboardHtml = `
+                <div class="space-y-6">
+                    <div class="flex items-center justify-between border-b pb-2 border-neutral-200 dark:border-neutral-800">
+                        <h4 class="text-xs font-mono uppercase tracking-widest text-red-500 font-semibold flex items-center gap-1.5">
+                            <i data-lucide="activity" class="w-4 h-4"></i> Compliance Sentinel Scorecard
+                        </h4>
+                        <span class="text-[10px] bg-red-50 dark:bg-red-900/30 text-red-600 px-2 py-0.5 rounded border border-red-200 dark:border-red-900/50">Action Needed</span>
+                    </div>
+
+                    <!-- Modern compliance indicator visual bars -->
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="border swiss-border rounded p-3 bg-neutral-50 dark:bg-neutral-900/50">
+                            <div class="flex justify-between items-center text-xs font-semibold mb-1">
+                                <span>Regulatory Alignment</span>
+                                <span class="text-red-500 font-bold">45%</span>
+                            </div>
+                            <div class="w-full bg-neutral-200 dark:bg-neutral-800 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-red-500 h-full rounded-full" style="width: 45%"></div>
+                            </div>
+                        </div>
+                        <div class="border swiss-border rounded p-3 bg-neutral-50 dark:bg-neutral-900/50">
+                            <div class="flex justify-between items-center text-xs font-semibold mb-1">
+                                <span>Risk Mitigation Index</span>
+                                <span class="text-yellow-500 font-bold">60%</span>
+                            </div>
+                            <div class="w-full bg-neutral-200 dark:bg-neutral-800 h-1.5 rounded-full overflow-hidden">
+                                <div class="bg-yellow-500 h-full rounded-full" style="width: 60%"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="markdown-content">
+                        ${marked.parse(responseText)}
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('workspaceContent').innerHTML = dashboardHtml;
+            applySwissTableStyling();
+            lucide.createIcons();
+        }
+
+        async function summarizeForExecutiveAction() {
+            const selectedDocs = state.documents.filter(d => d.selected);
+            if (selectedDocs.length === 0) {
+                triggerToast("Please select at least one document to summarize.", "error");
+                return;
+            }
+
+            setWorkspaceLoader(true, "Synthesizing executive briefing...");
+
+            const systemPrompt = `Analyze the provided contract details. Extract the essential operational components, potential financial liabilities, and regulatory requirements. Format exclusively as clean, highly readable bullet points with bold subheaders.`;
+
+            const combinedText = selectedDocs.map(d => d.text).join("\n\n");
+            const responseText = await runLlmQuery(systemPrompt, combinedText, 'exec-summary');
+
+            setWorkspaceLoader(false, "CEO Executive Briefing");
+            document.getElementById('workspaceContent').innerHTML = `
+                <div class="space-y-4">
+                    <h3 class="font-bold text-xs uppercase tracking-widest text-neutral-400 flex items-center gap-1.5">
+                        <i data-lucide="file-text" class="w-4 h-4"></i> Executive Summary
+                    </h3>
+                    <div class="markdown-content text-sm leading-relaxed">${marked.parse(responseText)}</div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        async function compareSelectedAction() {
+            const selectedDocs = state.documents.filter(d => d.selected);
+            if (selectedDocs.length < 2) {
+                triggerToast("Please select at least TWO documents from 'The Vault' to run comparisons.", "error");
+                return;
+            }
+
+            setWorkspaceLoader(true, "Comparing selected documents side-by-side...");
+
+            const systemPrompt = `You are a legal auditor. Run a comparison between the uploaded documents. Identify differences in dates, liability, SLA, and contradictions. Present strictly as a markdown comparative table.`;
+
+            const combinedContext = selectedDocs.map((d, index) => `Document [${index + 1}]: ${d.name}\nContent:\n${d.text}`).join("\n\n==================\n\n");
+            const responseText = await runLlmQuery(systemPrompt, combinedContext, 'compare-docs');
+
+            setWorkspaceLoader(false, "Wording and Clause Comparison");
+            document.getElementById('workspaceContent').innerHTML = `
+                <div class="space-y-4">
+                    <p class="text-xs text-neutral-500 font-mono">🔄 Document Side-by-Side Wording comparison:</p>
+                    <div class="markdown-content">${marked.parse(responseText)}</div>
+                </div>
+            `;
+            applySwissTableStyling();
+        }
+
+        function setWorkspaceLoader(isLoading, message) {
+            const title = document.getElementById('workspaceTitle');
+            const loader = document.getElementById('workspaceLoader');
+            const content = document.getElementById('workspaceContent');
+
+            if (isLoading) {
+                title.textContent = message;
+                loader.classList.remove('hidden');
+                content.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-48 text-neutral-400">
+                        <div class="loader mb-2"></div>
+                        <p class="text-xs animate-pulse">Running analysis on current Vault selection...</p>
+                    </div>
+                `;
+            } else {
+                loader.classList.add('hidden');
+            }
+        }
+
+        function applySwissTableStyling() {
+            const tables = document.querySelectorAll('#workspaceContent table');
+            tables.forEach(table => {
+                table.className = "swiss-table text-xs";
+            });
+        }
+
+        // Auto-scroll and pattern highlights inside left-pane
+        function checkForKeywordHighlights(text) {
+            if (!state.activeDocId) return;
+            const activeDoc = state.documents.find(d => d.id === state.activeDocId);
+            if (!activeDoc) return;
+
+            const quoteRegex = /"([^"\\]*(?:\\.[^"\\]*)*)"/g;
+            let match;
+            let matchFound = false;
+            
+            let highlightedText = escapeHtml(activeDoc.text);
+
+            while ((match = quoteRegex.exec(text)) !== null) {
+                const quoteText = match[1];
+                if (quoteText.length > 15) {
+                    const escapedQuote = escapeHtml(quoteText);
+                    if (highlightedText.includes(escapedQuote)) {
+                        highlightedText = highlightedText.replace(
+                            escapedQuote, 
+                            `<span class="highlight-span" id="first-highlight">${escapedQuote}</span>`
+                        );
+                        matchFound = true;
+                    }
+                }
+            }
+
+            if (!matchFound) {
+                const keywords = ["contradiction", "liability", "SLA", "GDPR", "penalty", "force majeure", "conflict"];
+                keywords.forEach(keyword => {
+                    const regex = new RegExp(`\\b(${keyword})\\b`, 'gi');
+                    highlightedText = highlightedText.replace(regex, `<span class="highlight-span font-semibold">$1</span>`);
+                });
+            }
+
+            const contentDiv = document.getElementById('viewerContent');
+            contentDiv.innerHTML = highlightedText;
+
+            setTimeout(() => {
+                const target = document.getElementById('first-highlight');
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        }
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        // --- STREAMING_CHUNK: Processing fallback simulations... ---
+        function runSandboxSimulation(agent, query, action = null) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    // Risk Heatmap handler (fully generates Privacy, Security, Liability, Compliance)
+                    if (action === 'risk-heatmap') {
+                        const response = `### ⚠️ Structural Risk Heatmap
+
+| Area | Risk Level | Specific Violation/Vulnerability |
+| :--- | :--- | :--- |
+| **Privacy** | 🟢 Low | GDPR constraints are clear; processing of all personal user data is restricted to EEA geographic regions (Section 3.2). |
+| **Security** | 🟡 Medium | Standard alignment with ISO 27001 is asserted, but there is no explicitly defined right for periodic security audits. |
+| **Liability** | 🔴 High | **Severe Contradiction Detected:** Section 3.3 asserts zero liability for network breach events, directly opposing Section 12.1's unconditional unlimited financial liability. |
+| **Compliance** | 🔴 High | Critical risk thresholds breached. Unresolved liability conflicts and vague Force Majeure parameters (Section 15.1) expose the organization to legal vulnerability. |`;
+                        resolve(response);
+                        return;
+                    }
+
+                    if (action === 'extract-deadlines') {
+                        const response = `### 📅 Extracted Obligations & Milestones
+
+| Obligation | Responsible Party | Deadline | Penalty for Late |
+| :--- | :--- | :--- | :--- |
+| **Complete Configs & Acceptance Ready** | Vendor Inc. | Dec 1, 2025 | $500/day daily delay penalty |
+| **Pay Final Implementation Milestone** | Client Corp. | Nov 15, 2025 | Interest penalty of 5% per month |
+| **GDPR Territorial Enforcement** | Vendor Inc. | Continuous | Severe regulatory non-compliance exposure |
+| **Invoke Outage Performance Release** | Either Party | Outage > 48 Hours | Subject to unilateral performance suspension |`;
+                        resolve(response);
+                        return;
+                    }
+
+                    if (action === 'exec-summary') {
+                        const response = `### 📝 CEO Executive Briefing Summary
+
+*   **Financial Liability Red Flag**: The draft contains a direct conflict regarding security breaches. One section caps sovereign network breach liability at zero, while another establishes **unlimited, unconditional** liability. This must be resolved to a standard 12-month trailing fee cap.
+*   **Key Milestones & Schedules**: Vendor configuration must be delivered by **December 1, 2025** (subject to a $500/day delay fee). Client payment is due **November 15, 2025** (subject to a 5% monthly interest fee).
+*   **GDPR & Security**: Data residency is locked strictly within the EEA, which meets legal requirements.
+*   **Force Majeure Vulnerability**: Force Majeure is loosely defined and can be unilaterally triggered by any network outage exceeding 48 hours, posing significant operational vulnerability.`;
+                        resolve(response);
+                        return;
+                    }
+
+                    if (action === 'compare-docs') {
+                        const response = `### 🔄 Side-by-Side Wording comparison
+
+| Compliance Metric | Document 1: Vendor_SLA_v3.2 | Document 2: Industry Reference Standard | Variance Resolution Notes |
+| :--- | :--- | :--- | :--- |
+| **Liability Limitations** | Unlimited third-party network failure liability (Sec 12.1) | Strictly capped at trailing 12-month contract fees | **High Risk**: Sec 12.1 constitutes a high-vulnerability clause. |
+| **GDPR Jurisdictions** | Housed strictly in EEA geographic bounds (Sec 3.2) | Flexible regional hosting agreements allowed | **Low Risk**: Alignment with core privacy directives. |
+| **Unilateral Release** | Outages > 48 hours trigger Force Majeure | Only classic Acts of God qualify | **High Risk**: Overly permissive escape clause for vendor. |`;
+                        resolve(response);
+                        return;
+                    }
+
+                    const lowQuery = query.toLowerCase();
+                    let response = "";
+
+                    if (agent === 'lexi') {
+                        if (lowQuery.includes('contradict') || lowQuery.includes('conflict') || lowQuery.includes('liability')) {
+                            response = `### 🛡️ Lexi Compliance Sentinel Report: Liability Contradiction
+
+⚠️ **Conflict Detected:** 
+
+*   **Page 4 (Section 3.3)** states: *"Vendor shall have zero liability for accidental data disclosures occurring as a result of sovereign network provider breaches."*
+*   **Page 12 (Section 12.1)** states: *"Vendor Inc. agrees to assume unconditional unlimited financial liability for all security breaches, including third-party routing leaks, sovereign carrier interruptions, or external system intrusions."*
+
+**Analysis:**
+These two clauses represent a direct legal conflict. Section 3.3 completely exempts the vendor from sovereign network breach liabilities, while Section 12.1 holds them unconditionally liable for sovereign carrier interruptions. A court dispute would likely find these terms irreconcilable, potentially voiding the limitation of liability completely.
+
+Source: *Service_SLA_Vendor_Agreement_v3.2.pdf*, Page 4 and Page 12.`;
+                        } else if (lowQuery.includes('gdpr') || lowQuery.includes('privacy')) {
+                            response = `### 🛡️ Privacy Analysis: GDPR Compliance Status
+
+The document *Service_SLA_Vendor_Agreement_v3.2.pdf* is **compliant** with fundamental GDPR territorial requirements, but contains structural vulnerabilities:
+
+*   **Sovereignty (Section 3.2):** Explicitly restricts processing of all personal user data to EEA geographic regions. This is highly aligned with GDPR standards.
+*   **Contradiction Warning:** Section 3.3 limits liability for data disclosures arising from sovereign breaches, which may contradict regulatory mandates that place continuous responsibility on data processors under Article 28 GDPR.
+
+Source: *Service_SLA_Vendor_Agreement_v3.2.pdf*, Section 3, Page 3.`;
+                        } else {
+                            response = `### 🛡️ General Compliance Assessment
+
+I have indexed the selected contract elements. 
+
+*   **Obligations Identified:** The document requires a feature delivery milestone on **Dec 1, 2025** and a milestone payment on **Nov 15, 2025**.
+*   **SLA Terms:** There is a structured penalty of **$500/day** for delivery delays and an **Interest penalty of 5%** for payment delays.
+*   **Discrepancy Warning:** There are material contradictions concerning sovereign breach responsibilities.
+
+Let me know if you would like me to rewrite or audit any of these terms!`;
+                        }
+                    } 
+                    
+                    else if (agent === 'judge') {
+                        if (lowQuery.includes('force majeure') || lowQuery.includes('ambiguity')) {
+                            response = `### ⚖️ The Judge: Ambiguity Audit
+
+⚠️ **Warning:** The terms in Section 15 governing **Force Majeure** do not define parameters clearly.
+
+*   **Section 15.1** triggers unilateral release from performance upon any network outage exceeding 48 hours without specifying the causes (such as labor strikes, severe storms, or general carrier outages).
+*   **Risk Profile:** A judge would likely interpret this broad, ambiguous drafting against the drafter. It effectively allows either party to escape performance parameters during routine infrastructure outages.
+
+**Recommendation:** Draft an explicit closed-list definition of triggers.`;
+                        } else {
+                            response = `### ⚖️ Structural Legal Liabilities Found
+
+I have completed an adversarial critique of *Service_SLA_Vendor_Agreement_v3.2.pdf*:
+
+1.  **⚠️ Uncapped Liability (Section 12.1):** The clause *"unconditional unlimited financial liability"* is highly dangerous for the Vendor. Standard SaaS terms require liability caps linked to fees paid.
+2.  **⚠️ Conflicting Protection (Section 3.3 vs 12.1):** The simultaneous presence of an unconditional liability clause alongside an exemption clause creates a major legal vulnerability. 
+3.  **⚠️ Ambiguity in Force Majeure (Section 15.1):** Lacks explicit acts-of-god listings, making unilateral termination claims excessively simple.`;
+                        }
+                    } 
+                    
+                    else if (agent === 'dealmaker') {
+                        response = `### 🤝 The Dealmaker: Balanced Rewrite Proposals
+
+I have flagged the high-risk sections of the current draft. Here is a balanced negotiation counter-proposal:
+
+#### 1. Uncapped Breach Liability (Section 12.1)
+*   **Original terms:** Unlimited liability for third party leaks and sovereign carriers.
+*   **Suggested Fair Rewrite:** 
+    > *"Except in cases of proven gross negligence or willful misconduct, Vendor's total aggregate liability for all data protection breaches under Section 12 shall be strictly capped at 12 months of SaaS fees paid by Client."*
+*   **Dealmaker Strategy:** Avoid unlimited terms. Capping liability at 12 months is highly standard in enterprise SaaS.
+
+#### 2. Ambiguity in Force Majeure (Section 15.1)
+*   **Original terms:** Allows release on any continuous outage over 48 hours.
+*   **Suggested Fair Rewrite:**
+    > *"Force Majeure shall only include unforeseen natural disasters, government restrictions, or nationwide utility collapses. Routine network carrier issues do not constitute Force Majeure."*`;
+                    }
+
+                    resolve(response);
+                }, 1000);
+            });
+        }
+
+        window.addEventListener('load', initializeApp);
+    </script>
+</body>
+</html>
